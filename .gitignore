@@ -1,0 +1,38 @@
+# Dataset (large video files)
+data/*
+!data/.gitkeep
+
+# Cached extracted features
+features/*
+!features/.gitkeep
+
+# Trained models (keep directory via .gitkeep)
+models/*.keras
+models/*.h5
+!models/.gitkeep
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+
+# Virtual environment
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Kaggle
+kaggle.json

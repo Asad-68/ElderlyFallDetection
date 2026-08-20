@@ -1,0 +1,2 @@
+# Keeps the features directory tracked by Git.
+# Cached feature arrays (.npz) will be generated here.
