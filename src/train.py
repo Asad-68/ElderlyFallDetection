@@ -22,6 +22,9 @@ import argparse
 import sys
 from pathlib import Path
 
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 
@@ -29,13 +32,14 @@ import tensorflow as tf
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
-from utils import get_logger, FEATURES_DIR, MODELS_DIR
+from utils import get_logger, FEATURES_DIR, MODELS_DIR, RESULTS_DIR
 
 logger = get_logger("train")
 
 FEATURES_FILE = FEATURES_DIR / "features.npz"
 SPLIT_FILE    = FEATURES_DIR / "train_test_split.npz"
 MODEL_FILE    = MODELS_DIR / "fall_detection_bilstm.keras"
+HISTORY_PLOT  = RESULTS_DIR / "training_history.png"
 
 
 def build_bilstm(input_shape: tuple) -> tf.keras.Model:
@@ -149,6 +153,37 @@ def main():
     # --- Save ---
     model.save(str(MODEL_FILE))
     logger.info("Model saved to %s", MODEL_FILE)
+
+    # --- Plot training history ---
+    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    epochs_range = range(1, len(history.history["loss"]) + 1)
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+
+    # Loss plot
+    ax1.plot(epochs_range, history.history["loss"], label="Train Loss", color="#1f77b4", lw=2)
+    if "val_loss" in history.history:
+        ax1.plot(epochs_range, history.history["val_loss"], label="Val Loss", color="#ff7f0e", lw=2, linestyle="--")
+    ax1.set_title("Training & Validation Loss", fontsize=13, fontweight="bold")
+    ax1.set_xlabel("Epoch", fontsize=11)
+    ax1.set_ylabel("Loss (Binary Crossentropy)", fontsize=11)
+    ax1.legend(loc="upper right")
+    ax1.grid(True, linestyle=":", alpha=0.6)
+
+    # Accuracy plot
+    ax2.plot(epochs_range, history.history["accuracy"], label="Train Accuracy", color="#2ca02c", lw=2)
+    if "val_accuracy" in history.history:
+        ax2.plot(epochs_range, history.history["val_accuracy"], label="Val Accuracy", color="#d62728", lw=2, linestyle="--")
+    ax2.set_title("Training & Validation Accuracy", fontsize=13, fontweight="bold")
+    ax2.set_xlabel("Epoch", fontsize=11)
+    ax2.set_ylabel("Accuracy", fontsize=11)
+    ax2.legend(loc="lower right")
+    ax2.grid(True, linestyle=":", alpha=0.6)
+
+    plt.tight_layout()
+    fig.savefig(str(HISTORY_PLOT), dpi=150)
+    plt.close(fig)
+    logger.info("Training history plot saved to %s", HISTORY_PLOT)
 
     # Quick training summary
     best_epoch = np.argmin(history.history["val_loss"])

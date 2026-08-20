@@ -17,7 +17,14 @@ import matplotlib
 matplotlib.use("Agg")  # Non-interactive backend (no GUI needed)
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.metrics import (
+    classification_report,
+    confusion_matrix,
+    roc_curve,
+    auc,
+    precision_recall_curve,
+    average_precision_score,
+)
 
 # Resolve project paths
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -94,6 +101,42 @@ def main():
     plt.close(fig)
     logger.info("Confusion matrix saved to %s", cm_path)
 
+    # --- ROC and Precision-Recall Curves ---
+    fpr, tpr, _ = roc_curve(y_test, y_proba)
+    roc_auc = auc(fpr, tpr)
+
+    precision, recall, _ = precision_recall_curve(y_test, y_proba)
+    avg_precision = average_precision_score(y_test, y_proba)
+
+    fig_curves, (ax_roc, ax_pr) = plt.subplots(1, 2, figsize=(12, 5))
+
+    # ROC curve
+    ax_roc.plot(fpr, tpr, color="#2b5c8f", lw=2.5, label=f"ROC Curve (AUC = {roc_auc:.3f})")
+    ax_roc.plot([0, 1], [0, 1], color="grey", lw=1.5, linestyle="--", label="Random Chance")
+    ax_roc.set_xlim([0.0, 1.0])
+    ax_roc.set_ylim([0.0, 1.05])
+    ax_roc.set_xlabel("False Positive Rate (1 - Specificity)", fontsize=11)
+    ax_roc.set_ylabel("True Positive Rate (Sensitivity / Recall)", fontsize=11)
+    ax_roc.set_title("Receiver Operating Characteristic (ROC)", fontsize=13, fontweight="bold")
+    ax_roc.legend(loc="lower right")
+    ax_roc.grid(True, linestyle=":", alpha=0.6)
+
+    # Precision-Recall curve
+    ax_pr.plot(recall, precision, color="#107c41", lw=2.5, label=f"PR Curve (AP = {avg_precision:.3f})")
+    ax_pr.set_xlim([0.0, 1.0])
+    ax_pr.set_ylim([0.0, 1.05])
+    ax_pr.set_xlabel("Recall", fontsize=11)
+    ax_pr.set_ylabel("Precision", fontsize=11)
+    ax_pr.set_title("Precision-Recall (PR) Curve", fontsize=13, fontweight="bold")
+    ax_pr.legend(loc="lower left")
+    ax_pr.grid(True, linestyle=":", alpha=0.6)
+
+    plt.tight_layout()
+    roc_pr_path = RESULTS_DIR / "roc_pr_curves.png"
+    fig_curves.savefig(str(roc_pr_path), dpi=150)
+    plt.close(fig_curves)
+    logger.info("ROC and PR curves saved to %s", roc_pr_path)
+
     # --- Per-sample predictions (useful for debugging) ---
     print("\n" + "-" * 60)
     print("PER-SAMPLE PREDICTIONS (first 20)")
@@ -107,7 +150,10 @@ def main():
     # --- Summary ---
     acc = np.mean(y_pred == y_test)
     print(f"\nOverall accuracy: {acc:.2%}")
-    print(f"Confusion matrix image: {cm_path}")
+    print(f"ROC-AUC Score:    {roc_auc:.4f}")
+    print(f"Avg Precision:    {avg_precision:.4f}")
+    print(f"Confusion matrix: {cm_path}")
+    print(f"ROC & PR curves:  {roc_pr_path}")
     logger.info("[DONE] Evaluation complete.")
 
 
